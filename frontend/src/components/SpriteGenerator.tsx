@@ -1,5 +1,20 @@
 import React, { useState } from 'react';
 
+const examplePrompts = [
+  {
+    title: "Cute Slime",
+    prompt: "A cute blue slime with big, round eyes and a happy expression. It has a slight transparency and a glossy surface. The slime is bouncing slightly, with small sparkles around it."
+  },
+  {
+    title: "Pixel Knight",
+    prompt: "A pixel art style knight in shining armor. The character has a silver helmet with a red plume, a blue cape, and a golden sword. The armor has intricate engravings and the character is in a battle-ready stance."
+  },
+  {
+    title: "Magical Cat",
+    prompt: "A mystical cat with purple fur and glowing green eyes. It has a star-shaped marking on its forehead and is surrounded by floating magical orbs. The cat is sitting elegantly with its tail wrapped around its paws."
+  }
+];
+
 const SpriteGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -31,6 +46,10 @@ const SpriteGenerator: React.FC = () => {
     }
   };
 
+  const handleExampleClick = (examplePrompt: string) => {
+    setPrompt(examplePrompt);
+  };
+
   return (
     <div className="container mt-8">
       <div className="card">
@@ -46,6 +65,20 @@ const SpriteGenerator: React.FC = () => {
               <p className="form-description">
                 Be as detailed as possible in your description. Include details about colors, style, expression, and any special features.
               </p>
+              
+              <div className="mb-4 flex flex-wrap gap-2">
+                {examplePrompts.map((example, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => handleExampleClick(example.prompt)}
+                    className="example-prompt-btn"
+                  >
+                    {example.title}
+                  </button>
+                ))}
+              </div>
+
               <textarea
                 id="prompt"
                 value={prompt}
