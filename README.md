@@ -163,16 +163,28 @@ CREATE TABLE animations (
 
 ## Database Configuration
 
-The application uses SQLite by default, but can be configured to use other databases like PostgreSQL or MySQL.
-
 ### Default Configuration (SQLite)
-The default configuration uses SQLite with the following settings:
-- Database file: `sprites.db`
-- Location: Backend directory
-- No authentication required
+The application uses SQLite by default, which is a file-based database system. This means:
+- The database is stored in a single file (`sprites.db`)
+- No user authentication is required
+- Access is controlled by file system permissions
+- Best suited for development and small-scale applications
+
+### Security Considerations
+When using SQLite:
+- The database file should be stored in a secure location
+- File system permissions should be properly set
+- The database file should be included in your backup strategy
+- For production environments with multiple users, consider using PostgreSQL or MySQL
 
 ### Alternative Database Setup
-To use a different database:
+For production environments or applications requiring:
+- User authentication
+- Concurrent access
+- Better scalability
+- Network access
+
+You can configure the application to use PostgreSQL or MySQL:
 
 1. Update `.env` file with your database credentials:
    ```bash
