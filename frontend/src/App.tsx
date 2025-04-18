@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './components/HomePage';
+import SpriteGenerator from './components/SpriteGenerator';
 
 function App() {
   return (
@@ -11,7 +12,7 @@ function App() {
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/sprite-generator" element={<div>Sprite Generator</div>} />
+            <Route path="/sprite-generator" element={<SpriteGenerator />} />
             <Route path="/animation-generator" element={<div>Animation Generator</div>} />
             <Route path="/library" element={<div>Library</div>} />
           </Routes>
