@@ -1,41 +1,27 @@
-import { useState } from 'react';
-import { animationService } from '../services/animationService';
+import React, { useState } from 'react';
+import axios from 'axios';
 
-const ANIMATION_TYPES = [
-  'idle',
-  'walk',
-  'run',
-  'jump',
-  'attack',
-  'defend',
-  'cast',
-  'death'
-];
-
-export const AnimationGenerator = () => {
-  const [baseSpriteId, setBaseSpriteId] = useState('');
-  const [animationType, setAnimationType] = useState('');
+const AnimationGenerator: React.FC = () => {
+  const [spriteId, setSpriteId] = useState('');
+  const [animationType, setAnimationType] = useState('idle');
   const [loading, setLoading] = useState(false);
-  const [animation, setAnimation] = useState<{ url: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [animationUrl, setAnimationUrl] = useState('');
 
-  const handleGenerate = async () => {
-    if (!baseSpriteId || !animationType) {
-      setError('Please select a base sprite and animation type');
-      return;
-    }
-
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
-    setError(null);
-
+    setError('');
+    
     try {
-      const response = await animationService.generateAnimation(
-        baseSpriteId,
-        animationType
-      );
-      setAnimation(response);
+      const response = await axios.post('http://localhost:8000/api/animations/generate', {
+        sprite_id: spriteId,
+        animation_type: animationType
+      });
+      setAnimationUrl(response.data.url);
     } catch (err) {
       setError('Failed to generate animation. Please try again.');
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -43,63 +29,69 @@ export const AnimationGenerator = () => {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Generate Animation</h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Generate Animation</h1>
       
-      <div className="mb-6">
-        <label className="block text-gray-700 text-sm font-bold mb-2">
-          Base Sprite ID
-        </label>
-        <input
-          type="text"
-          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={baseSpriteId}
-          onChange={(e) => setBaseSpriteId(e.target.value)}
-          placeholder="Enter base sprite ID"
-        />
-      </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="spriteId" className="block text-sm font-medium text-gray-700">
+            Sprite ID
+          </label>
+          <input
+            type="text"
+            id="spriteId"
+            value={spriteId}
+            onChange={(e) => setSpriteId(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            placeholder="Enter the sprite ID to animate"
+            required
+          />
+        </div>
 
-      <div className="mb-6">
-        <label className="block text-gray-700 text-sm font-bold mb-2">
-          Animation Type
-        </label>
-        <select
-          className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={animationType}
-          onChange={(e) => setAnimationType(e.target.value)}
+        <div>
+          <label htmlFor="animationType" className="block text-sm font-medium text-gray-700">
+            Animation Type
+          </label>
+          <select
+            id="animationType"
+            value={animationType}
+            onChange={(e) => setAnimationType(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          >
+            <option value="idle">Idle</option>
+            <option value="walk">Walk</option>
+            <option value="run">Run</option>
+            <option value="jump">Jump</option>
+            <option value="attack">Attack</option>
+          </select>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
         >
-          <option value="">Select animation type</option>
-          {ANIMATION_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </option>
-          ))}
-        </select>
-      </div>
+          {loading ? 'Generating...' : 'Generate Animation'}
+        </button>
+      </form>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
+        <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-md">
           {error}
         </div>
       )}
 
-      <button
-        className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 disabled:opacity-50"
-        onClick={handleGenerate}
-        disabled={loading}
-      >
-        {loading ? 'Generating...' : 'Generate Animation'}
-      </button>
-
-      {animation && (
+      {animationUrl && (
         <div className="mt-8">
-          <h2 className="text-xl font-bold mb-4">Generated Animation</h2>
+          <h2 className="text-xl font-semibold mb-4">Generated Animation</h2>
           <img
-            src={animation.url}
+            src={animationUrl}
             alt="Generated animation"
-            className="max-w-full rounded-lg shadow-lg"
+            className="max-w-full h-auto rounded-lg shadow-lg"
           />
         </div>
       )}
     </div>
   );
-}; 
+};
+
+export default AnimationGenerator; 

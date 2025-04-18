@@ -1,26 +1,31 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 
-export const Home = () => {
+const Home: React.FC = () => {
   return (
     <div className="text-center">
-      <h1 className="text-4xl font-bold mb-8">Welcome to 2D Animation Generator</h1>
-      <p className="text-xl mb-8">
+      <h1 className="text-4xl font-bold text-gray-900 mb-8">
+        Welcome to 2D Animation Generator
+      </h1>
+      <p className="text-xl text-gray-600 mb-12">
         Create beautiful 2D sprites and animations using AI
       </p>
-      <div className="flex justify-center space-x-4">
+      <div className="flex justify-center space-x-8">
         <Link
           to="/generate-sprite"
-          className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg"
         >
-          Generate Base Sprite
+          Generate Sprite
         </Link>
         <Link
           to="/generate-animation"
-          className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600"
+          className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg"
         >
           Generate Animation
         </Link>
       </div>
     </div>
   );
-}; 
+};
+
+export default Home; 
