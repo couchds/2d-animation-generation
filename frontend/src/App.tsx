@@ -1,22 +1,21 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import SpriteGenerator from './pages/SpriteGenerator';
-import AnimationGenerator from './pages/AnimationGenerator';
+import HomePage from './components/HomePage';
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-100">
+      <div className="flex flex-col min-h-screen">
         <Navbar />
-        <div className="container mx-auto px-4 py-8">
+        <main className="flex-grow">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/generate-sprite" element={<SpriteGenerator />} />
-            <Route path="/generate-animation" element={<AnimationGenerator />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/sprite-generator" element={<div>Sprite Generator</div>} />
+            <Route path="/animation-generator" element={<div>Animation Generator</div>} />
+            <Route path="/library" element={<div>Library</div>} />
           </Routes>
-        </div>
+        </main>
       </div>
     </Router>
   );
