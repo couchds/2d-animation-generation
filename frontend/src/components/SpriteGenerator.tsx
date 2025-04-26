@@ -1,75 +1,86 @@
 import React, { useState } from 'react';
 import { generateSprite } from '../services/api';
+import { SpriteVersion } from './SpriteHistory';
+import SpriteHistory from './SpriteHistory';
 
 const examplePrompts = [
   {
     title: "Cute Slime",
-    prompt: "A cute blue slime with big round eyes and a happy expression. The slime should be semi-transparent and have a slight glow effect."
+    prompt: "A cute slime character with big eyes, light blue color, smiling face, bouncy body, pixel art style."
   },
   {
     title: "Pixel Knight",
-    prompt: "A pixel art style knight in shining armor. The character has a silver helmet with a red plume, a blue cape, and a golden sword. The armor has intricate engravings and the character is in a battle-ready stance."
+    prompt: "A pixel art knight character with silver armor, blue cape, holding a sword and shield, heroic stance."
   },
   {
     title: "Magical Cat",
-    prompt: "A mystical cat with purple fur and glowing green eyes. It has a star-shaped marking on its forehead and is surrounded by floating magical orbs. The cat is sitting elegantly with its tail wrapped around its paws."
+    prompt: "A magical cat with purple fur, glowing yellow eyes, stars floating around, wearing a wizard hat, cute pixel art style."
   }
 ];
 
 const SpriteGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState('');
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim()) return;
-
-    setIsLoading(true);
-    setError(null);
-    setGeneratedImage(null);
-
-    try {
-      const response = await generateSprite(prompt);
-      setGeneratedImage(response.url);
-    } catch (err) {
-      setError('Failed to generate sprite. Please try again.');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDownload = () => {
-    if (!generatedImage) return;
-    const link = document.createElement('a');
-    link.href = generatedImage;
-    link.download = 'generated-sprite.png';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [spriteHistory, setSpriteHistory] = useState<SpriteVersion[]>([]);
+  const [currentVersionId, setCurrentVersionId] = useState<string>('');
 
   const handleExampleClick = (examplePrompt: string) => {
     setPrompt(examplePrompt);
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prompt.trim()) {
+      setError('Please enter a description for your sprite.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await generateSprite(prompt);
+      setGeneratedImage(response.url);
+
+      // Create a new sprite version
+      const newVersion: SpriteVersion = {
+        id: Date.now().toString(), // Generate a unique ID
+        imageUrl: response.url,
+        prompt: prompt,
+        createdAt: new Date().toISOString()
+      };
+
+      // Update history with the new version
+      setSpriteHistory(prev => [newVersion, ...prev]);
+      setCurrentVersionId(newVersion.id);
+    } catch (err) {
+      console.error('Error generating sprite:', err);
+      setError('Failed to generate sprite. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectVersion = (version: SpriteVersion) => {
+    if (version) {
+      setGeneratedImage(version.imageUrl);
+      setCurrentVersionId(version.id);
+    }
+  };
+
   return (
     <div className="card">
       <div className="card-header">
-        <h2>Generate Base Sprite</h2>
-        <p>Create a base sprite with a transparent background for your character</p>
+        <h2>Sprite Generator</h2>
       </div>
       <div className="card-body">
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="prompt" className="form-label">
-              Describe your character
-            </label>
-            <p className="form-description">
-              Be specific about the character's appearance, including colors, style, and any unique features.
-            </p>
+            <label htmlFor="prompt" className="form-label">Describe your character or sprite</label>
+            <p className="form-description">Be specific about colors, style, features, and mood for best results.</p>
+            
             <div className="example-prompts">
               {examplePrompts.map((example, index) => (
                 <button
@@ -82,49 +93,50 @@ const SpriteGenerator: React.FC = () => {
                 </button>
               ))}
             </div>
+            
             <textarea
               id="prompt"
-              className="form-input"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Example: A cute blue slime with big round eyes and a happy expression. The slime should be semi-transparent and have a slight glow effect."
+              className="form-input"
+              placeholder="Example: A cute blue dragon with big eyes, small wings, and a friendly smile in pixel art style."
               rows={4}
             />
           </div>
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={isLoading || !prompt.trim()}
-          >
-            {isLoading ? 'Generating...' : 'Generate Base Sprite'}
+          
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? 'Generating...' : 'Generate Sprite'}
           </button>
         </form>
-
+        
         {error && <div className="error-message">{error}</div>}
-
-        {isLoading && (
+        
+        {loading && (
           <div className="loading-spinner">
-            <div className="spinner" />
-            <p>Generating your sprite...</p>
+            <div className="spinner"></div>
+            <p>Creating your sprite... This may take a moment.</p>
           </div>
         )}
-
-        {generatedImage && (
-          <div className="generated-image-container">
-            <h3>Generated Sprite</h3>
-            <div className="image-wrapper">
-              <img
-                src={generatedImage}
-                alt="Generated sprite"
-                className="generated-image"
+        
+        {generatedImage && !loading && (
+          <div className="generated-content">
+            <div className="generated-image-container">
+              <div className="image-wrapper">
+                <img src={generatedImage} alt="Generated sprite" className="generated-image" />
+              </div>
+              <div className="image-actions">
+                <button className="btn-secondary">Download</button>
+                <button className="btn-secondary">Edit</button>
+              </div>
+            </div>
+            
+            {spriteHistory.length > 0 && (
+              <SpriteHistory 
+                versions={spriteHistory} 
+                currentVersionId={currentVersionId}
+                onSelectVersion={handleSelectVersion} 
               />
-            </div>
-            <div className="image-actions">
-              <button className="btn-secondary" onClick={handleDownload}>
-                Download Image
-              </button>
-              <button className="btn-secondary">Create Animation</button>
-            </div>
+            )}
           </div>
         )}
       </div>
