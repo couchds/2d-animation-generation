@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, func
+from sqlalchemy import Column, String, Text, DateTime, func, Boolean
 from sqlalchemy.orm import relationship
 from ..utils.database import Base
 
@@ -8,6 +8,7 @@ class Sprite(Base):
     id = Column(String, primary_key=True, index=True)
     url = Column(String, nullable=False)
     description = Column(Text, nullable=False)
+    is_base_image = Column(Boolean, default=True)  # Indicates if this is a base image for animations
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

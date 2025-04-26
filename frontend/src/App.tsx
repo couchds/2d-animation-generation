@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import HomePage from './components/HomePage';
 import SpriteGenerator from './components/SpriteGenerator';
+import SpriteLibrary from './components/SpriteLibrary';
 
 function App() {
   return (
@@ -14,7 +15,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/sprite-generator" element={<SpriteGenerator />} />
             <Route path="/animation-generator" element={<div>Animation Generator</div>} />
-            <Route path="/library" element={<div>Library</div>} />
+            <Route path="/library" element={<SpriteLibrary />} />
           </Routes>
         </main>
       </div>

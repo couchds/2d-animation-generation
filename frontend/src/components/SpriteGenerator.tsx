@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { generateSprite } from '../services/api';
 
 const examplePrompts = [
   {
     title: "Cute Slime",
-    prompt: "A cute blue slime with big, round eyes and a happy expression. It has a slight transparency and a glossy surface. The slime is bouncing slightly, with small sparkles around it."
+    prompt: "A cute blue slime with big round eyes and a happy expression. The slime should be semi-transparent and have a slight glow effect."
   },
   {
     title: "Pixel Knight",
@@ -19,31 +20,35 @@ const SpriteGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim()) return;
 
     setIsLoading(true);
+    setError(null);
+    setGeneratedImage(null);
+
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/generate-sprite', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ prompt }),
-      // });
-      // const data = await response.json();
-      // setGeneratedImage(data.imageUrl);
-      
-      // Temporary mock response
-      setTimeout(() => {
-        setGeneratedImage('https://via.placeholder.com/512x512');
-        setIsLoading(false);
-      }, 2000);
-    } catch (error) {
-      console.error('Error generating sprite:', error);
+      const response = await generateSprite(prompt);
+      setGeneratedImage(response.url);
+    } catch (err) {
+      setError('Failed to generate sprite. Please try again.');
+      console.error(err);
+    } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDownload = () => {
+    if (!generatedImage) return;
+    const link = document.createElement('a');
+    link.href = generatedImage;
+    link.download = 'generated-sprite.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleExampleClick = (examplePrompt: string) => {
@@ -51,71 +56,77 @@ const SpriteGenerator: React.FC = () => {
   };
 
   return (
-    <div className="container mt-8">
-      <div className="card">
-        <div className="card-header">
-          <h1 className="text-3xl font-bold">Sprite Generator</h1>
-        </div>
-        <div className="card-body">
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="prompt" className="form-label">
-                Describe your character
-              </label>
-              <p className="form-description">
-                Be as detailed as possible in your description. Include details about colors, style, expression, and any special features.
-              </p>
-              
-              <div className="mb-4 flex flex-wrap gap-2">
-                {examplePrompts.map((example, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => handleExampleClick(example.prompt)}
-                    className="example-prompt-btn"
-                  >
-                    {example.title}
-                  </button>
-                ))}
-              </div>
+    <div className="card">
+      <div className="card-header">
+        <h2>Generate Base Sprite</h2>
+        <p>Create a base sprite with a transparent background for your character</p>
+      </div>
+      <div className="card-body">
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="prompt" className="form-label">
+              Describe your character
+            </label>
+            <p className="form-description">
+              Be specific about the character's appearance, including colors, style, and any unique features.
+            </p>
+            <div className="example-prompts">
+              {examplePrompts.map((example, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className="example-prompt-btn"
+                  onClick={() => handleExampleClick(example.prompt)}
+                >
+                  {example.title}
+                </button>
+              ))}
+            </div>
+            <textarea
+              id="prompt"
+              className="form-input"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Example: A cute blue slime with big round eyes and a happy expression. The slime should be semi-transparent and have a slight glow effect."
+              rows={4}
+            />
+          </div>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={isLoading || !prompt.trim()}
+          >
+            {isLoading ? 'Generating...' : 'Generate Base Sprite'}
+          </button>
+        </form>
 
-              <textarea
-                id="prompt"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="form-input"
-                placeholder="Example: A cute blue slime with big, round eyes and a happy expression. It has a slight transparency and a glossy surface. The slime is bouncing slightly, with small sparkles around it."
-                required
+        {error && <div className="error-message">{error}</div>}
+
+        {isLoading && (
+          <div className="loading-spinner">
+            <div className="spinner" />
+            <p>Generating your sprite...</p>
+          </div>
+        )}
+
+        {generatedImage && (
+          <div className="generated-image-container">
+            <h3>Generated Sprite</h3>
+            <div className="image-wrapper">
+              <img
+                src={generatedImage}
+                alt="Generated sprite"
+                className="generated-image"
               />
             </div>
-            <button
-              type="submit"
-              className="btn-primary"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Generating...' : 'Generate Sprite'}
-            </button>
-          </form>
-
-          {isLoading && (
-            <div className="flex items-center justify-center p-8 mt-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            <div className="image-actions">
+              <button className="btn-secondary" onClick={handleDownload}>
+                Download Image
+              </button>
+              <button className="btn-secondary">Create Animation</button>
             </div>
-          )}
-
-          {generatedImage && !isLoading && (
-            <div className="mt-8">
-              <h2 className="text-xl font-semibold mb-4">Generated Sprite</h2>
-              <div className="flex justify-center">
-                <img
-                  src={generatedImage}
-                  alt="Generated sprite"
-                  className="max-w-full h-auto rounded-lg"
-                />
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

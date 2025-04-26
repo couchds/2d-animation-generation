@@ -1,11 +1,12 @@
 import os
 import uuid
 from typing import List
-from openai import OpenAI
+import openai
 from ..models.animation import Animation
 from ..utils.database import get_db
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize OpenAI with API key
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 class AnimationService:
     async def generate_animation(self, base_sprite_id: str, animation_type: str) -> Animation:
@@ -16,12 +17,10 @@ class AnimationService:
             if not base_sprite:
                 raise Exception("Base sprite not found")
 
-            response = client.images.generate(
-                model="dall-e-3",
+            response = openai.Image.create(
                 prompt=f"Create a {animation_type} animation frame for this character: {base_sprite.description}. The sprite should maintain the same style and proportions as the base sprite.",
-                size="1024x1024",
-                quality="standard",
                 n=1,
+                size="1024x1024"
             )
             
             animation = Animation(
