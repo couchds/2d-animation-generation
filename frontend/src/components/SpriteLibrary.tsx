@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getAllSprites } from '../services/api';
 
 interface Sprite {
@@ -8,6 +9,7 @@ interface Sprite {
 }
 
 const SpriteLibrary: React.FC = () => {
+  const navigate = useNavigate();
   const [sprites, setSprites] = useState<Sprite[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +32,24 @@ const SpriteLibrary: React.FC = () => {
     fetchSprites();
   }, []);
 
-  const handleDownload = (sprite: Sprite) => {
+  const handleSpriteClick = (spriteId: string) => {
+    navigate(`/sprites/${spriteId}`);
+  };
+
+  const handleDownload = (e: React.MouseEvent, sprite: Sprite) => {
+    e.stopPropagation(); // Prevent navigation to detail page
+    
     const link = document.createElement('a');
     link.href = sprite.url;
     link.download = `sprite-${sprite.id}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleAnimateClick = (e: React.MouseEvent, spriteId: string) => {
+    e.stopPropagation(); // Prevent navigation to detail page
+    navigate(`/animation-generator?spriteId=${spriteId}`);
   };
 
   if (isLoading) {
@@ -65,7 +78,11 @@ const SpriteLibrary: React.FC = () => {
           ) : (
             <div className="sprite-grid">
               {sprites.map((sprite) => (
-                <div key={sprite.id} className="sprite-card">
+                <div 
+                  key={sprite.id} 
+                  className="sprite-card"
+                  onClick={() => handleSpriteClick(sprite.id)}
+                >
                   <div className="sprite-image-wrapper">
                     <img src={sprite.url} alt={sprite.description} className="sprite-image" />
                   </div>
@@ -74,11 +91,16 @@ const SpriteLibrary: React.FC = () => {
                     <div className="sprite-actions">
                       <button
                         className="btn-secondary"
-                        onClick={() => handleDownload(sprite)}
+                        onClick={(e) => handleDownload(e, sprite)}
                       >
                         Download
                       </button>
-                      <button className="btn-secondary">Animate</button>
+                      <button 
+                        className="btn-secondary"
+                        onClick={(e) => handleAnimateClick(e, sprite.id)}
+                      >
+                        Animate
+                      </button>
                     </div>
                   </div>
                 </div>
