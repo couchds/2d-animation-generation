@@ -36,9 +36,10 @@ export const getAllSprites = async (): Promise<SpriteResponse[]> => {
 interface EditImageRequest {
   spriteId: string;
   prompt: string;
+  num_variations?: number;
 }
 
-export const editSpriteImage = async (params: EditImageRequest): Promise<SpriteResponse> => {
+export const editSpriteImage = async (params: EditImageRequest): Promise<SpriteResponse[]> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/api/sprites/edit`, params);
     return response.data;

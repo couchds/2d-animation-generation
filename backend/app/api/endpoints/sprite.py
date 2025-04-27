@@ -19,6 +19,7 @@ class SpriteRequest(BaseModel):
 class SpriteEditRequest(BaseModel):
     spriteId: str
     prompt: str
+    num_variations: Optional[int] = 5
 
 class SpriteResponse(BaseModel):
     id: str
@@ -47,13 +48,17 @@ async def generate_sprite(request: SpriteRequest):
         logger.error(f"Error generating sprite: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/edit", response_model=SpriteResponse)
+@router.post("/edit", response_model=List[SpriteResponse])
 async def edit_sprite(request: SpriteEditRequest):
     try:
         logger.info(f"Received request to edit sprite {request.spriteId} with prompt: {request.prompt}")
-        sprite = await sprite_service.edit_sprite_image(request.spriteId, request.prompt)
-        logger.info(f"Successfully edited sprite with ID: {sprite.id}")
-        return sprite
+        sprites = await sprite_service.edit_sprite_image(
+            request.spriteId, 
+            request.prompt, 
+            num_variations=request.num_variations
+        )
+        logger.info(f"Successfully edited sprite with {len(sprites)} variations")
+        return sprites
     except Exception as e:
         logger.error(f"Error editing sprite: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

@@ -57,4 +57,30 @@ class PromptService:
             logger.error("Using fallback prompt")
             logger.error("="*50)
             # Fallback to a basic formatted prompt if the API call fails
-            return f"Create a single character: a clean 2D pixel art character sprite for animation based on: {user_prompt}. The sprite should be in a clear pixel art style with a completely transparent background (alpha channel). The character should be centered in the frame with equal padding on all sides (at least 10% of the image size), in a neutral pose suitable as a base for animations, and isolated from any background elements. No ground, shadow, grid lines, rulers, or extra space around the character. Ensure the entire character is visible with no clipping." 
+            return f"Create a single character: a clean 2D pixel art character sprite for animation based on: {user_prompt}. The sprite should be in a clear pixel art style with a completely transparent background (alpha channel). The character should be centered in the frame with equal padding on all sides (at least 10% of the image size), in a neutral pose suitable as a base for animations, and isolated from any background elements. No ground, shadow, grid lines, rulers, or extra space around the character. Ensure the entire character is visible with no clipping."
+
+    async def format_edit_prompt(self, edit_instructions: str) -> str:
+        """
+        Format a prompt specifically for editing sprites, without adding creation instructions.
+        This method preserves the edit instructions exactly as provided without wrapping them
+        in creation-focused language.
+        
+        Args:
+            edit_instructions (str): The edit instructions to format
+            
+        Returns:
+            str: The formatted edit prompt
+        """
+        logger.info("="*50)
+        logger.info("EDIT PROMPT FORMATTING")
+        logger.info(f"Original edit instructions: {edit_instructions}")
+        
+        # For edit prompts, we just return the instructions exactly as given
+        # without adding any sprite creation boilerplate
+        
+        logger.info("="*50)
+        logger.info("EDIT PROMPT FORMATTING COMPLETE")
+        logger.info(f"Formatted edit prompt: {edit_instructions}")
+        logger.info("="*50)
+        
+        return edit_instructions 

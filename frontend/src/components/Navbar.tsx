@@ -12,9 +12,6 @@ const Navbar: React.FC = () => {
           <Link to="/sprite-generator" className="navbar-link">
             Sprite Generator
           </Link>
-          <Link to="/animation-generator" className="navbar-link">
-            Animation Generator
-          </Link>
           <Link to="/library" className="navbar-link">
             Library
           </Link>

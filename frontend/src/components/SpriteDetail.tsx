@@ -31,6 +31,9 @@ const SpriteDetail: React.FC = () => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editPrompt, setEditPrompt] = useState<string>('');
   const [isEditLoading, setIsEditLoading] = useState<boolean>(false);
+  const [editVariations, setEditVariations] = useState<Sprite[]>([]);
+  const [isSelectingVariation, setIsSelectingVariation] = useState<boolean>(false);
+  const [numVariations, setNumVariations] = useState<number>(3);
   
   // History state
   const [historyData, setHistoryData] = useState<SpriteHistoryData | null>(null);
@@ -71,13 +74,50 @@ const SpriteDetail: React.FC = () => {
   const fetchSpriteHistory = async (spriteId: string) => {
     try {
       setIsHistoryLoading(true);
-      const history = await getSpriteHistory(spriteId);
+      console.log(`Fetching history for sprite ID: ${spriteId}`);
+      
+      const response = await fetch(`http://localhost:8000/api/sprites/history/${spriteId}`);
+      
+      if (!response.ok) {
+        throw new Error(`API returned status: ${response.status} ${response.statusText}`);
+      }
+      
+      const history = await response.json();
+      console.log("Sprite history data (raw):", history);
+      
+      // Validate the response structure
+      if (!history || typeof history !== 'object' || !history.timeline) {
+        console.error("Invalid history data format:", history);
+        throw new Error("Invalid history data format returned from API");
+      }
+      
+      // Check if the arrays are present
+      if (!Array.isArray(history.timeline) || !Array.isArray(history.ancestors) || !Array.isArray(history.children)) {
+        console.error("Missing required arrays in history data:", history);
+        throw new Error("Missing required arrays in history data");
+      }
+      
+      // Debug the history data 
+      console.log("Timeline items:", history.timeline.length);
+      console.log("Ancestors:", history.ancestors.length);
+      console.log("Children:", history.children.length);
+      console.log("Current sprite:", history.current?.id);
+      
       setHistoryData(history);
     } catch (err) {
       console.error('Error fetching sprite history:', err);
-      // Don't set an error, just log it
+      // Show an error message but don't fail completely
+      setError(prev => prev || 'Failed to load sprite history. Some functionality may be limited.');
     } finally {
       setIsHistoryLoading(false);
+    }
+  };
+  
+  // Add a debug function to manually fetch history
+  const debugRefetchHistory = async () => {
+    if (displayedSprite) {
+      console.log("Manually refetching history...");
+      await fetchSpriteHistory(displayedSprite.id);
     }
   };
 
@@ -93,7 +133,6 @@ const SpriteDetail: React.FC = () => {
   };
 
   const handleCreateAnimation = () => {
-    // Will implement animation creation later
     if (displayedSprite) {
       navigate(`/animation-generator?spriteId=${displayedSprite.id}`);
     }
@@ -107,20 +146,49 @@ const SpriteDetail: React.FC = () => {
       setIsEditLoading(true);
       setError(null);
       
-      const updatedSprite = await editSpriteImage({
+      const variations = await editSpriteImage({
         spriteId: sprite.id,
-        prompt: editPrompt
+        prompt: editPrompt,
+        num_variations: numVariations
       });
       
-      setSprite(updatedSprite);
-      setDisplayedSprite(updatedSprite);
-      setIsEditing(false);
+      if (variations && variations.length > 0) {
+        // Store the variations for selection
+        setEditVariations(variations);
+        setIsSelectingVariation(true);
+        setIsEditing(false);
+      } else {
+        throw new Error("No variations were returned");
+      }
+    } catch (err) {
+      setError('Failed to edit sprite. Please try again.');
+      console.error(err);
+    } finally {
+      setIsEditLoading(false);
+    }
+  };
+  
+  const handleSelectVariation = async (selectedSprite: Sprite) => {
+    // Make this sprite the selected "base" image
+    try {
+      setIsEditLoading(true);
+      
+      // Set the selected variation as the new sprite
+      setSprite(selectedSprite);
+      setDisplayedSprite(selectedSprite);
+      
+      // Mark this sprite as a base image
+      // TODO: If needed, add a backend endpoint to mark a sprite as the base image
+      
+      // Reset state
+      setIsSelectingVariation(false);
+      setEditVariations([]);
       setEditPrompt('');
       
       // Refresh history to include the new edit
-      await fetchSpriteHistory(updatedSprite.id);
+      await fetchSpriteHistory(selectedSprite.id);
     } catch (err) {
-      setError('Failed to edit sprite. Please try again.');
+      setError('Failed to select variation. Please try again.');
       console.error(err);
     } finally {
       setIsEditLoading(false);
@@ -133,7 +201,9 @@ const SpriteDetail: React.FC = () => {
       id: sprite.id,
       imageUrl: sprite.url,
       prompt: sprite.description,
-      createdAt: sprite.created_at || new Date().toISOString()
+      createdAt: sprite.created_at || new Date().toISOString(),
+      editDescription: sprite.edit_description,
+      isRoot: sprite.parent_id === null || sprite.parent_id === undefined
     };
   };
 
@@ -142,6 +212,28 @@ const SpriteDetail: React.FC = () => {
     const selectedSprite = historyData?.timeline.find(s => s.id === version.id);
     if (selectedSprite) {
       setDisplayedSprite(selectedSprite);
+    }
+  };
+
+  // Find the index of the currently displayed sprite in the timeline
+  const currentIndex = historyData?.timeline.findIndex(s => s.id === displayedSprite?.id) ?? -1;
+  const hasPrevious = currentIndex > 0;
+  const hasNext = historyData && currentIndex < historyData.timeline.length - 1;
+
+  // Debug logging
+  console.log("Current displayedSprite:", displayedSprite);
+  console.log("historyData:", historyData);
+  console.log("Current index:", currentIndex);
+  console.log("Has previous:", hasPrevious);
+  console.log("Has next:", hasNext);
+
+  // Handler for navigation buttons
+  const handleNavigation = (direction: 'prev' | 'next') => {
+    if (!historyData) return;
+    
+    const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex >= 0 && newIndex < historyData.timeline.length) {
+      setDisplayedSprite(historyData.timeline[newIndex]);
     }
   };
 
@@ -177,6 +269,89 @@ const SpriteDetail: React.FC = () => {
           <div className="sprite-detail-layout">
             <div className="sprite-detail-image">
               <img src={displayedSprite.url} alt={displayedSprite.description} />
+              
+              {/* Version navigation controls */}
+              {historyData && historyData.timeline.length > 1 && (
+                <div className="version-navigation-controls">
+                  <button 
+                    className="btn-primary btn-nav"
+                    disabled={!hasPrevious}
+                    onClick={() => handleNavigation('prev')}
+                  >
+                    ← Previous Version
+                  </button>
+                  <span className="version-indicator">
+                    Version {currentIndex + 1} of {historyData.timeline.length}
+                  </span>
+                  <button 
+                    className="btn-primary btn-nav"
+                    disabled={!hasNext}
+                    onClick={() => handleNavigation('next')}
+                  >
+                    Next Version →
+                  </button>
+                </div>
+              )}
+              
+              {/* Direct parent/child navigation */}
+              {historyData ? (
+                <div className="parent-child-navigation">
+                  <div style={{ marginBottom: '10px', padding: '5px', backgroundColor: '#f0f0f0', color: 'black' }}>
+                    Debug Info:
+                    <ul>
+                      <li>History Loaded: {historyData ? "Yes" : "No"}</li>
+                      <li>Timeline Length: {historyData?.timeline.length || 0}</li>
+                      <li>Ancestors: {historyData?.ancestors.length || 0}</li>
+                      <li>Children: {historyData?.children.length || 0}</li> 
+                      <li>Current Index: {currentIndex}</li>
+                      <li>Has Parent: {displayedSprite?.parent_id ? "Yes" : "No"}</li>
+                      <li>Parent ID: {displayedSprite?.parent_id || "None"}</li>
+                    </ul>
+                  </div>
+                  
+                  {displayedSprite.parent_id && (
+                    <button 
+                      className="btn-secondary btn-parent"
+                      onClick={() => {
+                        const parentSprite = historyData.ancestors.find(s => s.id === displayedSprite.parent_id);
+                        if (parentSprite) {
+                          setDisplayedSprite(parentSprite);
+                        }
+                      }}
+                    >
+                      View Parent Sprite
+                    </button>
+                  )}
+                  
+                  {historyData.children.length > 0 && historyData.children.some(child => child.id !== sprite.id) && (
+                    <div className="children-selector">
+                      <span>Child Sprites: </span>
+                      {historyData.children.map(child => (
+                        <button 
+                          key={child.id}
+                          className={`btn-secondary btn-child ${displayedSprite.id === child.id ? 'active' : ''}`}
+                          onClick={() => setDisplayedSprite(child)}
+                        >
+                          {child.edit_description ? child.edit_description.substring(0, 20) + '...' : 'Version ' + (historyData.timeline.findIndex(s => s.id === child.id) + 1)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="debug-panel" style={{ margin: '1.5rem 0', padding: '1rem', backgroundColor: '#fff0f0', borderRadius: '0.5rem', border: '1px solid #ffcccb' }}>
+                  <h4>History Data Not Available</h4>
+                  <p>The sprite history data is not loaded even though this sprite has a parent ID: {displayedSprite?.parent_id}</p>
+                  <button 
+                    className="btn-secondary"
+                    onClick={debugRefetchHistory}
+                    style={{ marginTop: '10px' }}
+                  >
+                    Manually Fetch History
+                  </button>
+                </div>
+              )}
+              
               {displayedSprite.id !== sprite.id && (
                 <div className="viewing-version-notice">
                   Viewing previous version
@@ -206,6 +381,12 @@ const SpriteDetail: React.FC = () => {
                 {displayedSprite.created_at && (
                   <p><strong>Created:</strong> {new Date(displayedSprite.created_at).toLocaleString()}</p>
                 )}
+                {displayedSprite.parent_id && (
+                  <p><strong>Parent Sprite:</strong> {displayedSprite.parent_id}</p>
+                )}
+                {historyData && (
+                  <p><strong>Version:</strong> {historyData.timeline.findIndex(s => s.id === displayedSprite.id) + 1} of {historyData.timeline.length}</p>
+                )}
               </div>
               
               {isEditing ? (
@@ -229,6 +410,28 @@ const SpriteDetail: React.FC = () => {
                         required
                       />
                     </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="numVariations" className="form-label">
+                        Number of Variations
+                      </label>
+                      <p className="form-description">
+                        Choose how many variations to generate (1-5). More variations give you more options but take longer to generate.
+                      </p>
+                      <div className="variations-selector">
+                        <input 
+                          type="range" 
+                          id="numVariations" 
+                          min="1" 
+                          max="5" 
+                          value={numVariations} 
+                          onChange={(e) => setNumVariations(parseInt(e.target.value))}
+                          className="variations-slider"
+                        />
+                        <div className="variations-value">{numVariations}</div>
+                      </div>
+                    </div>
+                    
                     <div className="edit-form-actions">
                       <button
                         type="submit"
@@ -280,12 +483,18 @@ const SpriteDetail: React.FC = () => {
             </div>
           </div>
           
-          {historyData && historyData.timeline.length > 1 && (
-            <SpriteHistory 
-              versions={spriteVersions}
-              currentVersionId={displayedSprite.id}
-              onSelectVersion={handleSelectVersion}
-            />
+          {historyData && historyData.timeline.length > 0 && (
+            <div className="sprite-timeline-section">
+              <div className="sprite-timeline-header">
+                <h3>Sprite Evolution</h3>
+                <p>This sprite has {historyData.timeline.length} version{historyData.timeline.length !== 1 ? 's' : ''} in its history.</p>
+              </div>
+              <SpriteHistory 
+                versions={spriteVersions}
+                currentVersionId={displayedSprite.id}
+                onSelectVersion={handleSelectVersion}
+              />
+            </div>
           )}
         </div>
       </div>
@@ -295,6 +504,45 @@ const SpriteDetail: React.FC = () => {
           <div className="loading-spinner">
             <div className="spinner" />
             <p>Editing sprite...</p>
+          </div>
+        </div>
+      )}
+      
+      {isSelectingVariation && (
+        <div className="variation-selection-overlay">
+          <div className="variation-selection-container">
+            <h2>Choose a Variation</h2>
+            <p>Select one of the {editVariations.length} variations below to apply your edit: <strong>{editPrompt}</strong></p>
+            
+            <div className="variation-grid">
+              {editVariations.map((variation, index) => (
+                <div key={variation.id} className="variation-item">
+                  <div className="variation-image-container">
+                    <img 
+                      src={variation.url} 
+                      alt={`Variation ${index + 1}`} 
+                      className="variation-image"
+                    />
+                  </div>
+                  <button
+                    className="btn-primary"
+                    onClick={() => handleSelectVariation(variation)}
+                  >
+                    Select Variation {index + 1}
+                  </button>
+                </div>
+              ))}
+            </div>
+            
+            <button
+              className="btn-secondary variation-cancel-btn"
+              onClick={() => {
+                setIsSelectingVariation(false);
+                setEditVariations([]);
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}

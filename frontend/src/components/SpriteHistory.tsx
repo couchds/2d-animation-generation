@@ -6,6 +6,8 @@ export interface SpriteVersion {
   imageUrl: string;
   prompt: string;
   createdAt: string;
+  editDescription?: string;
+  isRoot?: boolean;
 }
 
 interface SpriteHistoryProps {
@@ -66,8 +68,18 @@ const SpriteHistory: React.FC<SpriteHistoryProps> = ({
                   <div className="timeline-info">
                     <span className="timeline-date">
                       {formatDate(version.createdAt)}
+                      {version.isRoot && <span className="badge badge-root">Original</span>}
                     </span>
-                    <p className="timeline-prompt">{version.prompt}</p>
+                    
+                    {version.editDescription ? (
+                      <>
+                        <p className="timeline-edit-description">{version.editDescription}</p>
+                        <p className="timeline-prompt">{version.prompt}</p>
+                      </>
+                    ) : (
+                      <p className="timeline-prompt">{version.prompt}</p>
+                    )}
+                    
                     {isCurrentVersion && (
                       <span className="current-version-badge">Current</span>
                     )}
